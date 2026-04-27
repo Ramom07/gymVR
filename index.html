@@ -1,7 +1,33 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#060606" />
+  <title>GymLog</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { height: 100%; width: 100%; background: #060606; overflow: hidden; }
+    body { font-family: 'Syne', sans-serif; -webkit-tap-highlight-color: transparent; }
+    input, button, textarea, select { outline: none; -webkit-appearance: none; }
+    input[type=range] { -webkit-appearance: none; height: 4px; background: #2a2a2a; border-radius: 2px; cursor: pointer; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #C8FF00; cursor: pointer; }
+    ::-webkit-scrollbar { width: 0; height: 0; }
+    * { scrollbar-width: none; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
 
-// ── Fonts ──────────────────────────────────────────────────────────────────
-const FONT_LINK = "https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap";
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
 
 // ── Users ─────────────────────────────────────────────────────────────────
 const USERS = [
@@ -11,14 +37,13 @@ const USERS = [
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 const uid = () => Math.random().toString(36).slice(2, 8);
-const fmt = (n) => (n == null ? "—" : n);
 const today = () => new Date().toISOString().slice(0, 10);
 const fmtDate = (iso) => {
   const d = new Date(iso + "T12:00:00");
   return d.toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" });
 };
 
-// ── Persistence ───────────────────────────────────────────────────────────
+// ── Data ──────────────────────────────────────────────────────────────────
 const SEED = {
   ramon: {
     routines: [
@@ -37,7 +62,7 @@ const SEED = {
         { id: "e8", name: "Extensión", sets: 3, reps: "15", weight: 50 },
       ]},
     ],
-    history: [], // [{id, date, label, entries:[{exId, routineId, sets, reps, weight}]}]
+    history: [],
   },
   novia: { routines: [], history: [] },
 };
@@ -48,9 +73,16 @@ function loadData() {
 }
 function saveData(d) { try { localStorage.setItem("gl2", JSON.stringify(d)); } catch {} }
 
-// ═════════════════════════════════════════════════════════════════════════════
+// ── Shared styles ──────────────────────────────────────────────────────────
+const scr = { display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" };
+const h2s = { color: "#fff", fontSize: 22, fontWeight: 800, margin: 0, fontFamily: "Syne", letterSpacing: -0.5 };
+const labelS = { color: "#444", fontSize: 10, letterSpacing: 2, margin: "0 0 6px", fontFamily: "Syne" };
+const backBtn = { background: "none", border: "none", color: "#555", cursor: "pointer", fontSize: 22, padding: 0, fontFamily: "Syne" };
+const iStyle = { width: "100%", background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 10, padding: "11px", color: "#fff", fontSize: 16, fontFamily: "JetBrains Mono, monospace", textAlign: "center", boxSizing: "border-box" };
+
+// ═══════════════════════════════════════════════════════
 // REST TIMER
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 function RestTimer({ initial, onClose }) {
   const [total, setTotal] = useState(initial);
   const [rem, setRem] = useState(initial);
@@ -62,12 +94,10 @@ function RestTimer({ initial, onClose }) {
     return () => clearTimeout(ref.current);
   }, [running, rem]);
 
-  // vibrate on finish
   useEffect(() => { if (rem === 0 && navigator.vibrate) navigator.vibrate([200, 100, 200]); }, [rem]);
 
   const pct = total > 0 ? (rem / total) * 100 : 0;
-  const R = 70;
-  const circ = 2 * Math.PI * R;
+  const R = 70, circ = 2 * Math.PI * R;
   const mins = String(Math.floor(rem / 60)).padStart(2, "0");
   const secs = String(rem % 60).padStart(2, "0");
 
@@ -78,9 +108,8 @@ function RestTimer({ initial, onClose }) {
   }
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(4,4,4,0.93)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 9999, gap: 28 }}>
-      <p style={{ color: "#555", fontSize: 11, letterSpacing: 4, textTransform: "uppercase", margin: 0, fontFamily: "Syne, sans-serif" }}>Descanso</p>
-
+    <div style={{ position: "fixed", inset: 0, background: "rgba(4,4,4,0.95)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 9999, gap: 24 }}>
+      <p style={{ color: "#555", fontSize: 11, letterSpacing: 4, textTransform: "uppercase", margin: 0 }}>Descanso</p>
       <div style={{ position: "relative", width: 180, height: 180 }}>
         <svg width={180} height={180} style={{ position: "absolute", transform: "rotate(-90deg)" }}>
           <circle cx={90} cy={90} r={R} fill="none" stroke="#1a1a1a" strokeWidth={6} />
@@ -89,76 +118,62 @@ function RestTimer({ initial, onClose }) {
             style={{ transition: "stroke-dashoffset 1s linear, stroke 0.3s" }} />
         </svg>
         <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-          <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 42, fontWeight: 500, color: rem === 0 ? "#3aff8a" : "#fff", lineHeight: 1 }}>
-            {mins}:{secs}
-          </span>
+          <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 44, fontWeight: 500, color: rem === 0 ? "#3aff8a" : "#fff", lineHeight: 1 }}>{mins}:{secs}</span>
           {rem === 0 && <span style={{ fontSize: 10, color: "#3aff8a", letterSpacing: 3, marginTop: 6 }}>¡LISTO!</span>}
         </div>
       </div>
-
-      {/* Adjust time */}
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 8 }}>
         {[-30, -15, +15, +30].map(d => (
-          <button key={d} onClick={() => adjust(d)} style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 8, color: d > 0 ? "#C8FF00" : "#ff6464", fontFamily: "JetBrains Mono, monospace", fontSize: 12, padding: "7px 11px", cursor: "pointer" }}>
+          <button key={d} onClick={() => adjust(d)} style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 8, color: d > 0 ? "#C8FF00" : "#ff6464", fontFamily: "JetBrains Mono, monospace", fontSize: 12, padding: "7px 10px", cursor: "pointer" }}>
             {d > 0 ? "+" : ""}{d}s
           </button>
         ))}
       </div>
-
       <div style={{ display: "flex", gap: 10 }}>
-        <button onClick={() => { setRem(total); setRunning(true); }} style={pill("#1e1e1e", "#888")}>↺ Reset</button>
-        <button onClick={() => setRunning(r => !r)} style={pill("#1e1e1e", "#fff")}>{running ? "⏸" : "▶"}</button>
-        <button onClick={onClose} style={pill("#C8FF00", "#000", true)}>Cerrar</button>
+        <button onClick={() => { setRem(total); setRunning(true); }} style={{ background: "#1e1e1e", color: "#888", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, cursor: "pointer", fontFamily: "Syne" }}>↺ Reset</button>
+        <button onClick={() => setRunning(r => !r)} style={{ background: "#1e1e1e", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, cursor: "pointer", fontFamily: "Syne" }}>{running ? "⏸" : "▶"}</button>
+        <button onClick={onClose} style={{ background: "#C8FF00", color: "#000", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "Syne" }}>Cerrar</button>
       </div>
-      <p style={{ color: "#333", fontSize: 11, fontFamily: "Syne, sans-serif" }}>{total}s configurados</p>
+      <p style={{ color: "#2a2a2a", fontSize: 11 }}>{total}s configurados</p>
     </div>
   );
 }
 
-const pill = (bg, color, bold = false) => ({
-  background: bg, color, border: "none", borderRadius: 10, padding: "10px 20px",
-  fontSize: 13, fontWeight: bold ? 700 : 400, cursor: "pointer", fontFamily: "Syne, sans-serif",
-});
-
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 // WEIGHT HISTORY MODAL
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 function WeightHistory({ exName, exId, history, onClose }) {
   const logs = history
-    .flatMap(s => s.entries.filter(e => e.exId === exId).map(e => ({ date: s.date, weight: e.weight, sets: e.sets, reps: e.reps })))
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 10);
-
+    .flatMap(s => (s.entries || []).filter(e => e.exId === exId).map(e => ({ date: s.date, weight: e.weight, sets: e.sets, reps: e.reps })))
+    .sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
   const max = logs.length ? Math.max(...logs.map(l => parseFloat(l.weight) || 0)) : 0;
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.88)", zIndex: 9999, display: "flex", alignItems: "flex-end" }}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", zIndex: 9999, display: "flex", alignItems: "flex-end" }}>
       <div style={{ background: "#0e0e0e", width: "100%", maxHeight: "80vh", borderRadius: "20px 20px 0 0", overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "20px 20px 14px", borderBottom: "1px solid #1a1a1a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <p style={{ margin: 0, fontSize: 10, color: "#555", letterSpacing: 3, textTransform: "uppercase", fontFamily: "Syne" }}>Historial</p>
-            <p style={{ margin: "2px 0 0", fontSize: 17, fontWeight: 700, color: "#fff", fontFamily: "Syne" }}>{exName}</p>
+            <p style={{ margin: 0, fontSize: 10, color: "#555", letterSpacing: 3, textTransform: "uppercase" }}>Historial de peso</p>
+            <p style={{ margin: "2px 0 0", fontSize: 17, fontWeight: 700, color: "#fff" }}>{exName}</p>
           </div>
           <button onClick={onClose} style={{ background: "#1a1a1a", border: "none", borderRadius: "50%", width: 32, height: 32, color: "#888", cursor: "pointer", fontSize: 16 }}>✕</button>
         </div>
         <div style={{ overflowY: "auto", padding: "16px 20px", flex: 1 }}>
-          {logs.length === 0 ? (
-            <p style={{ color: "#444", fontSize: 14, textAlign: "center", padding: "32px 0", fontFamily: "Syne" }}>Sin registros todavía.</p>
-          ) : logs.map((l, i) => {
-            const bar = max > 0 ? ((parseFloat(l.weight) || 0) / max) * 100 : 0;
-            return (
-              <div key={i} style={{ marginBottom: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                  <span style={{ color: "#aaa", fontSize: 12, fontFamily: "Syne" }}>{fmtDate(l.date)}</span>
-                  <span style={{ color: "#fff", fontSize: 13, fontFamily: "JetBrains Mono, monospace", fontWeight: 500 }}>
-                    {l.weight}kg · {l.sets}×{l.reps}
-                  </span>
+          {logs.length === 0
+            ? <p style={{ color: "#444", fontSize: 14, textAlign: "center", padding: "32px 0" }}>Sin registros todavía.</p>
+            : logs.map((l, i) => {
+              const bar = max > 0 ? ((parseFloat(l.weight) || 0) / max) * 100 : 0;
+              return (
+                <div key={i} style={{ marginBottom: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ color: "#aaa", fontSize: 12 }}>{fmtDate(l.date)}</span>
+                    <span style={{ color: "#fff", fontSize: 13, fontFamily: "JetBrains Mono, monospace" }}>{l.weight}kg · {l.sets}×{l.reps}</span>
+                  </div>
+                  <div style={{ height: 4, background: "#1a1a1a", borderRadius: 2 }}>
+                    <div style={{ height: "100%", width: bar + "%", background: "#C8FF00", borderRadius: 2, transition: "width .4s" }} />
+                  </div>
                 </div>
-                <div style={{ height: 4, background: "#1a1a1a", borderRadius: 2 }}>
-                  <div style={{ height: "100%", width: `${bar}%`, background: "#C8FF00", borderRadius: 2, transition: "width .4s" }} />
-                </div>
-              </div>
-            );
+              );
           })}
         </div>
       </div>
@@ -166,9 +181,9 @@ function WeightHistory({ exName, exId, history, onClose }) {
   );
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 // LOGIN
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 function Login({ onLogin }) {
   const [who, setWho] = useState(null);
   const [pin, setPin] = useState("");
@@ -187,26 +202,24 @@ function Login({ onLogin }) {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#060606", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "Syne, sans-serif", padding: 24 }}>
-      <link href={FONT_LINK} rel="stylesheet" />
-      <div style={{ marginBottom: 52, textAlign: "center" }}>
+    <div style={{ minHeight: "100vh", background: "#060606", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ marginBottom: 48, textAlign: "center" }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>🏋️</div>
-        <h1 style={{ color: "#fff", fontSize: 32, fontWeight: 800, margin: 0, letterSpacing: -1.5 }}>GymLog</h1>
-        <p style={{ color: "#444", fontSize: 13, margin: "8px 0 0", letterSpacing: 1 }}>REGISTRA TU PROGRESO</p>
+        <h1 style={{ color: "#fff", fontSize: 32, fontWeight: 800, letterSpacing: -1.5 }}>GymLog</h1>
+        <p style={{ color: "#444", fontSize: 12, marginTop: 8, letterSpacing: 2 }}>REGISTRA TU PROGRESO</p>
       </div>
-
       {!who ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 320 }}>
           {USERS.map(u => (
             <button key={u.id} onClick={() => { setWho(u.id); setPin(""); setErr(false); }} style={{
-              background: "#0e0e0e", border: `1.5px solid #1e1e1e`, borderRadius: 16,
+              background: "#0e0e0e", border: "1.5px solid #1e1e1e", borderRadius: 16,
               padding: "20px 24px", color: "#fff", cursor: "pointer", fontFamily: "Syne, sans-serif",
-              display: "flex", alignItems: "center", gap: 16, transition: "border-color .2s",
+              display: "flex", alignItems: "center", gap: 16, transition: "border-color .2s", width: "100%",
             }}
               onMouseOver={e => e.currentTarget.style.borderColor = u.accent}
               onMouseOut={e => e.currentTarget.style.borderColor = "#1e1e1e"}
             >
-              <div style={{ width: 44, height: 44, borderRadius: "50%", background: u.accent + "22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{u.emoji}</div>
+              <div style={{ width: 44, height: 44, borderRadius: "50%", background: u.accent + "22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{u.emoji}</div>
               <div style={{ textAlign: "left" }}>
                 <div style={{ fontWeight: 700, fontSize: 16, color: "#fff" }}>{u.name}</div>
                 <div style={{ fontSize: 11, color: "#555", marginTop: 2, letterSpacing: 1 }}>INGRESAR</div>
@@ -219,7 +232,7 @@ function Login({ onLogin }) {
         <div style={{ width: "100%", maxWidth: 300 }}>
           <button onClick={() => setWho(null)} style={{ background: "none", border: "none", color: "#555", cursor: "pointer", fontFamily: "Syne", marginBottom: 24, fontSize: 13 }}>← Volver</button>
           <div style={{ display: "flex", justifyContent: "center", gap: 14, marginBottom: 28 }}>
-            {[0, 1, 2, 3].map(i => (
+            {[0,1,2,3].map(i => (
               <div key={i} style={{ width: 14, height: 14, borderRadius: "50%", background: pin.length > i ? (err ? "#ff4444" : USERS.find(u => u.id === who)?.accent) : "#222", transition: "background .15s" }} />
             ))}
           </div>
@@ -228,8 +241,7 @@ function Login({ onLogin }) {
               <button key={i} onClick={() => k && tap(k)} style={{
                 background: k ? "#111" : "transparent", border: k ? "1px solid #1e1e1e" : "none",
                 borderRadius: 12, padding: "18px 0", fontSize: k === "⌫" ? 20 : 22,
-                fontWeight: 600, color: "#fff", cursor: k ? "pointer" : "default",
-                fontFamily: "JetBrains Mono, monospace",
+                fontWeight: 600, color: "#fff", cursor: k ? "pointer" : "default", fontFamily: "JetBrains Mono, monospace",
               }}>{k}</button>
             ))}
           </div>
@@ -240,9 +252,9 @@ function Login({ onLogin }) {
   );
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// EXERCISE EDITOR MODAL (inline per exercise in session)
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// EXERCISE EDIT MODAL
+// ═══════════════════════════════════════════════════════
 function ExModal({ ex, restTimer, onSave, onClose }) {
   const [sets, setSets] = useState(String(ex.sets));
   const [reps, setReps] = useState(String(ex.reps));
@@ -250,55 +262,46 @@ function ExModal({ ex, restTimer, onSave, onClose }) {
   const [timer, setTimer] = useState(restTimer);
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.88)", zIndex: 9000, display: "flex", alignItems: "flex-end" }}>
-      <div style={{ background: "#0e0e0e", width: "100%", borderRadius: "20px 20px 0 0", padding: "24px 20px 36px" }}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", zIndex: 9000, display: "flex", alignItems: "flex-end" }}>
+      <div style={{ background: "#0e0e0e", width: "100%", borderRadius: "20px 20px 0 0", padding: "24px 20px 40px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
-          <p style={{ color: "#fff", fontFamily: "Syne", fontWeight: 700, fontSize: 17, margin: 0 }}>{ex.name}</p>
+          <p style={{ color: "#fff", fontWeight: 700, fontSize: 17, margin: 0 }}>{ex.name}</p>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#666", cursor: "pointer", fontSize: 20 }}>✕</button>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }}>
           {[["Series", sets, setSets], ["Reps", reps, setReps], ["Peso (kg)", weight, setWeight]].map(([l, v, sv]) => (
             <div key={l}>
-              <p style={{ color: "#555", fontSize: 10, letterSpacing: 2, margin: "0 0 6px", fontFamily: "Syne" }}>{l.toUpperCase()}</p>
+              <p style={{ ...labelS, marginBottom: 6 }}>{l.toUpperCase()}</p>
               <input value={v} onChange={e => sv(e.target.value)} style={iStyle} />
             </div>
           ))}
         </div>
         <div style={{ marginBottom: 20 }}>
-          <p style={{ color: "#555", fontSize: 10, letterSpacing: 2, margin: "0 0 8px", fontFamily: "Syne" }}>DESCANSO (SEGUNDOS)</p>
+          <p style={{ ...labelS, marginBottom: 8 }}>DESCANSO (SEGUNDOS)</p>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <input type="range" min={10} max={300} step={5} value={timer} onChange={e => setTimer(+e.target.value)}
-              style={{ flex: 1, accentColor: "#C8FF00" }} />
+            <input type="range" min={10} max={300} step={5} value={timer} onChange={e => setTimer(+e.target.value)} style={{ flex: 1, accentColor: "#C8FF00" }} />
             <span style={{ color: "#C8FF00", fontSize: 14, fontFamily: "JetBrains Mono", minWidth: 40, textAlign: "right" }}>{timer}s</span>
           </div>
-          <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
             {[30, 45, 60, 90, 120, 180].map(s => (
               <button key={s} onClick={() => setTimer(s)} style={{
                 background: timer === s ? "#C8FF00" : "#1a1a1a", color: timer === s ? "#000" : "#777",
-                border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11,
-                cursor: "pointer", fontFamily: "JetBrains Mono, monospace", fontWeight: 600,
+                border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontFamily: "JetBrains Mono, monospace", fontWeight: 600,
               }}>{s}s</button>
             ))}
           </div>
         </div>
-        <button onClick={() => onSave({ sets, reps, weight, restTimer: timer })} style={{
-          width: "100%", background: "#C8FF00", color: "#000", border: "none", borderRadius: 12,
-          padding: "15px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "Syne",
-        }}>Guardar</button>
+        <button onClick={() => onSave({ sets, reps, weight, restTimer: timer })} style={{ width: "100%", background: "#C8FF00", color: "#000", border: "none", borderRadius: 12, padding: "15px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "Syne" }}>
+          Guardar
+        </button>
       </div>
     </div>
   );
 }
 
-const iStyle = {
-  width: "100%", background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 10,
-  padding: "11px", color: "#fff", fontSize: 16, fontFamily: "JetBrains Mono, monospace",
-  textAlign: "center", boxSizing: "border-box",
-};
-
-// ═════════════════════════════════════════════════════════════════════════════
-// ROUTINE EDITOR SCREEN
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// ROUTINE EDITOR
+// ═══════════════════════════════════════════════════════
 function RoutineEditor({ existing, onSave, onBack, accent }) {
   const [name, setName] = useState(existing?.name || "");
   const [muscles, setMuscles] = useState(existing?.muscles || "");
@@ -322,7 +325,6 @@ function RoutineEditor({ existing, onSave, onBack, accent }) {
             <input value={v} onChange={e => sv(e.target.value)} placeholder={ph} style={{ ...iStyle, textAlign: "left", padding: "12px 14px" }} />
           </div>
         ))}
-
         <div style={{ marginBottom: 24 }}>
           <p style={labelS}>DESCANSO POR DEFECTO</p>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
@@ -331,36 +333,31 @@ function RoutineEditor({ existing, onSave, onBack, accent }) {
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {[30, 60, 90, 120, 180].map(s => (
-              <button key={s} onClick={() => setRest(s)} style={{
-                background: rest === s ? accent : "#1a1a1a", color: rest === s ? "#000" : "#666",
-                border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11,
-                cursor: "pointer", fontFamily: "JetBrains Mono, monospace", fontWeight: 600,
-              }}>{s}s</button>
+              <button key={s} onClick={() => setRest(s)} style={{ background: rest === s ? accent : "#1a1a1a", color: rest === s ? "#000" : "#666", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontFamily: "JetBrains Mono, monospace", fontWeight: 600 }}>{s}s</button>
             ))}
           </div>
         </div>
-
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <p style={{ ...labelS, margin: 0 }}>EJERCICIOS</p>
-            <button onClick={addEx} style={{ background: accent + "22", color: accent, border: `1px solid ${accent}44`, borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontFamily: "Syne" }}>+ Agregar</button>
+            <button onClick={addEx} style={{ background: accent + "22", color: accent, border: "1px solid " + accent + "44", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontFamily: "Syne" }}>+ Agregar</button>
           </div>
           {exs.map((ex, idx) => (
             <div key={ex.id} style={{ background: "#0e0e0e", border: "1px solid #1e1e1e", borderRadius: 14, padding: 14, marginBottom: 10 }}>
               <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
-                <span style={{ color: "#333", fontSize: 12, fontFamily: "JetBrains Mono" }}>{String(idx + 1).padStart(2, "0")}</span>
+                <span style={{ color: "#333", fontSize: 12, fontFamily: "JetBrains Mono", flexShrink: 0 }}>{String(idx + 1).padStart(2, "0")}</span>
                 <input value={ex.name} onChange={e => upEx(ex.id, "name", e.target.value)} placeholder="Nombre del ejercicio"
                   style={{ ...iStyle, textAlign: "left", padding: "10px 12px", flex: 1 }} />
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
                 {[["Series", "sets"], ["Reps", "reps"], ["Peso kg", "weight"]].map(([l, f]) => (
                   <div key={f}>
-                    <p style={{ color: "#444", fontSize: 9, letterSpacing: 1.5, margin: "0 0 4px", fontFamily: "Syne" }}>{l.toUpperCase()}</p>
+                    <p style={{ color: "#444", fontSize: 9, letterSpacing: 1.5, margin: "0 0 4px" }}>{l.toUpperCase()}</p>
                     <input value={ex[f]} onChange={e => upEx(ex.id, f, e.target.value)} style={{ ...iStyle, padding: "8px 6px" }} />
                   </div>
                 ))}
               </div>
-              <button onClick={() => rmEx(ex.id)} style={{ background: "none", border: "none", color: "#ff5555", fontSize: 11, marginTop: 10, cursor: "pointer", fontFamily: "Syne" }}>Eliminar ejercicio</button>
+              <button onClick={() => rmEx(ex.id)} style={{ background: "none", border: "none", color: "#ff5555", fontSize: 11, marginTop: 10, cursor: "pointer", fontFamily: "Syne" }}>Eliminar</button>
             </div>
           ))}
         </div>
@@ -376,9 +373,9 @@ function RoutineEditor({ existing, onSave, onBack, accent }) {
   );
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// SESSION SCREEN
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// SESSION
+// ═══════════════════════════════════════════════════════
 function Session({ routines, user, ud, onFinish, onCancel }) {
   const buildExs = () => routines.flatMap(r =>
     r.exercises.map(e => ({ ...e, routineId: r.id, routineName: r.name, routineRest: r.restTimer, done: false, customRest: null }))
@@ -386,16 +383,15 @@ function Session({ routines, user, ud, onFinish, onCancel }) {
   const [exs, setExs] = useState(buildExs);
   const [editIdx, setEditIdx] = useState(null);
   const [timerSecs, setTimerSecs] = useState(null);
-  const [histModal, setHistModal] = useState(null); // {exId, exName}
+  const [histModal, setHistModal] = useState(null);
   const [note, setNote] = useState("");
 
   function upEx(idx, patch) { setExs(p => p.map((e, i) => i === idx ? { ...e, ...patch } : e)); }
-  function getTimer(ex) { return ex.customRest ?? ex.routineRest; }
+  function getTimer(ex) { return ex.customRest != null ? ex.customRest : ex.routineRest; }
 
   function finish() {
     const entries = exs.map(e => ({ exId: e.id, routineId: e.routineId, sets: e.sets, reps: e.reps, weight: e.weight }));
     const session = { id: uid(), date: today(), label: routines.map(r => r.name).join(" + "), note, entries };
-    // update weights in routines
     const newRoutines = ud.routines.map(r => {
       const upd = exs.filter(e => e.routineId === r.id);
       if (!upd.length) return r;
@@ -408,7 +404,6 @@ function Session({ routines, user, ud, onFinish, onCancel }) {
 
   return (
     <div style={scr}>
-      {/* Header */}
       <div style={{ padding: "18px 20px 0" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
           <button onClick={onCancel} style={backBtn}>←</button>
@@ -418,80 +413,51 @@ function Session({ routines, user, ud, onFinish, onCancel }) {
           </div>
           <span style={{ color: "#555", fontSize: 12, fontFamily: "JetBrains Mono" }}>{done}/{exs.length}</span>
         </div>
-        {/* Progress bar */}
         <div style={{ height: 3, background: "#1a1a1a", borderRadius: 2, marginTop: 12 }}>
-          <div style={{ height: "100%", width: `${exs.length ? (done / exs.length) * 100 : 0}%`, background: user.accent, borderRadius: 2, transition: "width .4s" }} />
+          <div style={{ height: "100%", width: (exs.length ? (done / exs.length) * 100 : 0) + "%", background: user.accent, borderRadius: 2, transition: "width .4s" }} />
         </div>
       </div>
-
       <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px" }}>
         {routines.map(r => (
           <div key={r.id} style={{ marginBottom: 28 }}>
             <p style={{ ...labelS, color: user.accent, marginBottom: 12 }}>{r.name.toUpperCase()}</p>
             {exs.map((ex, idx) => ex.routineId !== r.id ? null : (
-              <div key={ex.id} style={{
-                background: ex.done ? "#0c160c" : "#0e0e0e",
-                border: `1px solid ${ex.done ? "#2a4a2a" : "#1e1e1e"}`,
-                borderRadius: 14, padding: "14px 16px", marginBottom: 10, transition: "all .2s",
-              }}>
+              <div key={ex.id} style={{ background: ex.done ? "#0c160c" : "#0e0e0e", border: "1px solid " + (ex.done ? "#2a4a2a" : "#1e1e1e"), borderRadius: 14, padding: "14px 16px", marginBottom: 10, transition: "all .2s" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                   <div>
-                    <p style={{ color: ex.done ? "#5aaa3a" : "#fff", fontWeight: 700, fontSize: 15, margin: 0, fontFamily: "Syne" }}>{ex.name}</p>
-                    <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
-                      <span style={{ color: "#555", fontSize: 11, fontFamily: "JetBrains Mono" }}>{ex.sets} series · {ex.reps} reps · {ex.weight}kg</span>
-                    </div>
+                    <p style={{ color: ex.done ? "#5aaa3a" : "#fff", fontWeight: 700, fontSize: 15, margin: 0 }}>{ex.name}</p>
+                    <span style={{ color: "#555", fontSize: 11, fontFamily: "JetBrains Mono" }}>{ex.sets} series · {ex.reps} reps · {ex.weight}kg</span>
                   </div>
-                  <button onClick={() => setEditIdx(idx)} style={{ background: "#1a1a1a", border: "none", borderRadius: 8, color: "#888", fontSize: 11, padding: "5px 10px", cursor: "pointer", fontFamily: "Syne" }}>
-                    Editar
-                  </button>
+                  <button onClick={() => setEditIdx(idx)} style={{ background: "#1a1a1a", border: "none", borderRadius: 8, color: "#888", fontSize: 11, padding: "5px 10px", cursor: "pointer", fontFamily: "Syne", flexShrink: 0 }}>Editar</button>
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button onClick={() => upEx(idx, { done: !ex.done })} style={{
-                    flex: 1, background: ex.done ? "#1e3a1e" : "#1a1a1a",
-                    border: `1px solid ${ex.done ? "#3a6a3a" : "#2a2a2a"}`,
-                    borderRadius: 8, color: ex.done ? "#5aaa3a" : "#888",
-                    fontSize: 12, padding: "9px 0", cursor: "pointer", fontFamily: "Syne", fontWeight: 600,
-                  }}>
+                  <button onClick={() => upEx(idx, { done: !ex.done })} style={{ flex: 1, background: ex.done ? "#1e3a1e" : "#1a1a1a", border: "1px solid " + (ex.done ? "#3a6a3a" : "#2a2a2a"), borderRadius: 8, color: ex.done ? "#5aaa3a" : "#888", fontSize: 12, padding: "9px 0", cursor: "pointer", fontFamily: "Syne", fontWeight: 600 }}>
                     {ex.done ? "✓ Completado" : "Marcar listo"}
                   </button>
                   {ex.done && (
-                    <button onClick={() => setTimerSecs(getTimer(ex))} style={{
-                      background: user.accent + "15", border: `1px solid ${user.accent}44`,
-                      borderRadius: 8, color: user.accent, fontSize: 12, padding: "9px 14px",
-                      cursor: "pointer", fontFamily: "Syne", fontWeight: 600,
-                    }}>⏱ {getTimer(ex)}s</button>
+                    <button onClick={() => setTimerSecs(getTimer(ex))} style={{ background: user.accent + "15", border: "1px solid " + user.accent + "44", borderRadius: 8, color: user.accent, fontSize: 12, padding: "9px 14px", cursor: "pointer", fontFamily: "Syne", fontWeight: 600 }}>⏱ {getTimer(ex)}s</button>
                   )}
-                  <button onClick={() => setHistModal({ exId: ex.id, exName: ex.name })} style={{
-                    background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 8, color: "#555",
-                    fontSize: 12, padding: "9px 12px", cursor: "pointer", fontFamily: "Syne",
-                  }}>📊</button>
+                  <button onClick={() => setHistModal({ exId: ex.id, exName: ex.name })} style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 8, color: "#555", fontSize: 12, padding: "9px 12px", cursor: "pointer" }}>📊</button>
                 </div>
               </div>
             ))}
           </div>
         ))}
-
-        {/* Note */}
-        <div style={{ marginTop: 8, marginBottom: 16 }}>
-          <p style={labelS}>NOTA DEL ENTRENAMIENTO (opcional)</p>
+        <div style={{ marginBottom: 16 }}>
+          <p style={labelS}>NOTA (opcional)</p>
           <textarea value={note} onChange={e => setNote(e.target.value)} rows={3} placeholder="Cómo te sentiste, qué mejorar..."
-            style={{ ...iStyle, textAlign: "left", padding: "12px", resize: "none", width: "100%", boxSizing: "border-box" }} />
+            style={{ ...iStyle, textAlign: "left", padding: "12px", resize: "none", width: "100%" }} />
         </div>
         <div style={{ height: 90 }} />
       </div>
-
       <div style={{ padding: "12px 20px", borderTop: "1px solid #111" }}>
-        <button onClick={finish} style={{
-          width: "100%", background: user.accent, color: "#000", border: "none", borderRadius: 12,
-          padding: 15, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "Syne",
-        }}>
-          {done === exs.length ? "✓ Terminar entrenamiento" : `Terminar (${done}/${exs.length})`}
+        <button onClick={finish} style={{ width: "100%", background: user.accent, color: "#000", border: "none", borderRadius: 12, padding: 15, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "Syne" }}>
+          {done === exs.length ? "✓ Terminar entrenamiento" : "Terminar (" + done + "/" + exs.length + ")"}
         </button>
       </div>
-
       {editIdx !== null && (
         <ExModal ex={exs[editIdx]} restTimer={getTimer(exs[editIdx])}
-          onSave={(patch) => { upEx(editIdx, { sets: patch.sets, reps: patch.reps, weight: patch.weight, customRest: patch.restTimer }); setEditIdx(null); }}
+          onSave={patch => { upEx(editIdx, { sets: patch.sets, reps: patch.reps, weight: patch.weight, customRest: patch.restTimer }); setEditIdx(null); }}
           onClose={() => setEditIdx(null)} />
       )}
       {timerSecs !== null && <RestTimer initial={timerSecs} onClose={() => setTimerSecs(null)} />}
@@ -500,9 +466,9 @@ function Session({ routines, user, ud, onFinish, onCancel }) {
   );
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 // HISTORIAL SCREEN
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 function HistorialScreen({ ud, user }) {
   const [open, setOpen] = useState(null);
   const sessions = [...(ud.history || [])].sort((a, b) => b.date.localeCompare(a.date));
@@ -514,31 +480,26 @@ function HistorialScreen({ ud, user }) {
         <p style={{ color: "#555", fontSize: 12, margin: "4px 0 0", fontFamily: "JetBrains Mono" }}>{sessions.length} sesiones registradas</p>
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: "0 20px" }}>
-        {sessions.length === 0 ? (
-          <p style={{ color: "#333", textAlign: "center", padding: "60px 0", fontFamily: "Syne", fontSize: 14 }}>Sin historial todavía.<br />Completa tu primer entrenamiento.</p>
-        ) : sessions.map(s => (
+        {sessions.length === 0
+          ? <p style={{ color: "#333", textAlign: "center", padding: "60px 0", fontSize: 14 }}>Sin historial todavía.<br />Completa tu primer entrenamiento.</p>
+          : sessions.map(s => (
           <div key={s.id} style={{ background: "#0e0e0e", border: "1px solid #1e1e1e", borderRadius: 14, marginBottom: 10, overflow: "hidden" }}>
-            <button onClick={() => setOpen(open === s.id ? null : s.id)} style={{
-              width: "100%", background: "none", border: "none", cursor: "pointer", padding: "16px 18px",
-              display: "flex", alignItems: "center", gap: 12, fontFamily: "Syne",
-            }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: user.accent + "15", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span style={{ color: user.accent, fontSize: 18 }}>💪</span>
-              </div>
+            <button onClick={() => setOpen(open === s.id ? null : s.id)} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: "16px 18px", display: "flex", alignItems: "center", gap: 12, fontFamily: "Syne" }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: user.accent + "15", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 18 }}>💪</div>
               <div style={{ flex: 1, textAlign: "left" }}>
                 <p style={{ color: "#fff", fontWeight: 700, fontSize: 14, margin: 0 }}>{s.label}</p>
-                <p style={{ color: "#555", fontSize: 11, margin: "2px 0 0", fontFamily: "JetBrains Mono" }}>{fmtDate(s.date)} · {s.entries?.length || 0} ejercicios</p>
+                <p style={{ color: "#555", fontSize: 11, margin: "2px 0 0", fontFamily: "JetBrains Mono" }}>{fmtDate(s.date)} · {(s.entries || []).length} ejercicios</p>
               </div>
-              <span style={{ color: "#444", fontSize: 18, transform: open === s.id ? "rotate(180deg)" : "none", transition: "transform .2s" }}>⌄</span>
+              <span style={{ color: "#444", fontSize: 18, display: "inline-block", transform: open === s.id ? "rotate(180deg)" : "none", transition: "transform .2s" }}>⌄</span>
             </button>
             {open === s.id && (
               <div style={{ borderTop: "1px solid #1a1a1a", padding: "12px 18px" }}>
-                {s.note && <p style={{ color: "#666", fontSize: 12, fontStyle: "italic", marginBottom: 10, fontFamily: "Syne" }}>"{s.note}"</p>}
+                {s.note && <p style={{ color: "#666", fontSize: 12, fontStyle: "italic", marginBottom: 10 }}>"{s.note}"</p>}
                 {(s.entries || []).map((e, i) => {
                   const exName = ud.routines.flatMap(r => r.exercises).find(ex => ex.id === e.exId)?.name || e.exId;
                   return (
                     <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid #111" }}>
-                      <span style={{ color: "#aaa", fontSize: 13, fontFamily: "Syne" }}>{exName}</span>
+                      <span style={{ color: "#aaa", fontSize: 13 }}>{exName}</span>
                       <span style={{ color: "#666", fontSize: 12, fontFamily: "JetBrains Mono" }}>{e.sets}×{e.reps} · {e.weight}kg</span>
                     </div>
                   );
@@ -553,14 +514,13 @@ function HistorialScreen({ ud, user }) {
   );
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 // ROUTINES SCREEN
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 function RoutinesScreen({ ud, user, onUpdate, goEdit, goAdd }) {
   const [open, setOpen] = useState({});
   const toggle = id => setOpen(p => ({ ...p, [id]: !p[id] }));
-
-  function del(id) { onUpdate({ ...ud, routines: ud.routines.filter(r => r.id !== id) }); }
+  function del(id) { if (confirm("¿Eliminar esta rutina?")) onUpdate({ ...ud, routines: ud.routines.filter(r => r.id !== id) }); }
 
   return (
     <div style={scr}>
@@ -572,23 +532,23 @@ function RoutinesScreen({ ud, user, onUpdate, goEdit, goAdd }) {
         <button onClick={goAdd} style={{ background: user.accent, color: "#000", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "Syne" }}>+ Nueva</button>
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: "0 20px" }}>
-        {ud.routines.length === 0 ? (
-          <p style={{ color: "#333", textAlign: "center", padding: "60px 0", fontFamily: "Syne", fontSize: 14 }}>Sin rutinas.<br />Crea la primera.</p>
-        ) : ud.routines.map(r => (
+        {ud.routines.length === 0
+          ? <p style={{ color: "#333", textAlign: "center", padding: "60px 0", fontSize: 14 }}>Sin rutinas. Crea la primera.</p>
+          : ud.routines.map(r => (
           <div key={r.id} style={{ background: "#0e0e0e", border: "1px solid #1e1e1e", borderRadius: 14, marginBottom: 10, overflow: "hidden" }}>
             <div style={{ display: "flex", alignItems: "center", padding: "16px 18px", cursor: "pointer" }} onClick={() => toggle(r.id)}>
               <div style={{ flex: 1 }}>
-                <p style={{ color: "#fff", fontWeight: 700, fontSize: 15, margin: 0, fontFamily: "Syne" }}>{r.name}</p>
+                <p style={{ color: "#fff", fontWeight: 700, fontSize: 15, margin: 0 }}>{r.name}</p>
                 <p style={{ color: "#555", fontSize: 11, margin: "3px 0 0", fontFamily: "JetBrains Mono" }}>{r.muscles} · {r.exercises.length} ej. · {r.restTimer}s</p>
               </div>
               <button onClick={e => { e.stopPropagation(); goEdit(r); }} style={{ background: "none", border: "1px solid #2a2a2a", borderRadius: 7, color: "#666", fontSize: 11, padding: "5px 10px", cursor: "pointer", fontFamily: "Syne", marginRight: 10 }}>Editar</button>
-              <span style={{ color: "#444", fontSize: 20, transform: open[r.id] ? "rotate(180deg)" : "none", transition: "transform .2s" }}>⌄</span>
+              <span style={{ color: "#444", fontSize: 20, display: "inline-block", transform: open[r.id] ? "rotate(180deg)" : "none", transition: "transform .2s" }}>⌄</span>
             </div>
             {open[r.id] && (
               <div style={{ borderTop: "1px solid #1a1a1a", padding: "12px 18px 16px" }}>
                 {r.exercises.map(ex => (
                   <div key={ex.id} style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid #111" }}>
-                    <span style={{ color: "#ccc", fontSize: 13, fontFamily: "Syne" }}>{ex.name}</span>
+                    <span style={{ color: "#ccc", fontSize: 13 }}>{ex.name}</span>
                     <span style={{ color: "#555", fontSize: 12, fontFamily: "JetBrains Mono" }}>{ex.sets}×{ex.reps} · {ex.weight}kg</span>
                   </div>
                 ))}
@@ -603,75 +563,52 @@ function RoutinesScreen({ ud, user, onUpdate, goEdit, goAdd }) {
   );
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 // HOME SCREEN
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 function HomeScreen({ ud, user, onStart }) {
   const [sel, setSel] = useState([]);
   const toggle = id => setSel(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
 
-  // Stats
-  const totalSessions = ud.history?.length || 0;
-  const thisWeek = ud.history?.filter(s => {
-    const d = new Date(s.date + "T12:00"); const now = new Date();
-    const diff = (now - d) / 86400000;
+  const totalSessions = (ud.history || []).length;
+  const thisWeek = (ud.history || []).filter(s => {
+    const diff = (new Date() - new Date(s.date + "T12:00")) / 86400000;
     return diff <= 7;
-  }).length || 0;
-  const lastSession = ud.history?.sort((a, b) => b.date.localeCompare(a.date))[0];
+  }).length;
+  const lastSession = [...(ud.history || [])].sort((a, b) => b.date.localeCompare(a.date))[0];
 
   return (
     <div style={scr}>
       <div style={{ padding: "28px 20px 0" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
           <div>
-            <p style={{ color: "#555", fontSize: 11, letterSpacing: 3, margin: 0, fontFamily: "Syne" }}>BIENVENIDO</p>
-            <h2 style={{ color: user.accent, fontSize: 26, fontWeight: 800, margin: "4px 0 0", fontFamily: "Syne", letterSpacing: -1 }}>{user.name}</h2>
+            <p style={{ color: "#555", fontSize: 11, letterSpacing: 3, margin: 0 }}>BIENVENIDO</p>
+            <h2 style={{ color: user.accent, fontSize: 26, fontWeight: 800, margin: "4px 0 0", letterSpacing: -1 }}>{user.name}</h2>
           </div>
           <div style={{ textAlign: "right" }}>
             <p style={{ color: "#555", fontSize: 10, margin: 0, fontFamily: "JetBrains Mono" }}>Esta semana</p>
             <p style={{ color: "#fff", fontSize: 22, fontWeight: 700, margin: "2px 0 0", fontFamily: "JetBrains Mono" }}>{thisWeek}</p>
           </div>
         </div>
-
-        {/* Stats row */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 28 }}>
-          {[
-            ["Total sesiones", totalSessions, "💪"],
-            ["Último entreno", lastSession ? fmtDate(lastSession.date) : "—", "📅"],
-          ].map(([l, v, ic]) => (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
+          {[["Total sesiones", "💪 " + totalSessions], ["Último entreno", "📅 " + (lastSession ? fmtDate(lastSession.date) : "—")]].map(([l, v]) => (
             <div key={l} style={{ background: "#0e0e0e", border: "1px solid #1a1a1a", borderRadius: 12, padding: "14px" }}>
-              <p style={{ color: "#444", fontSize: 10, letterSpacing: 1.5, margin: "0 0 6px", fontFamily: "Syne" }}>{l.toUpperCase()}</p>
-              <p style={{ color: "#fff", fontSize: 16, fontWeight: 700, margin: 0, fontFamily: "JetBrains Mono" }}>{ic} {v}</p>
+              <p style={{ color: "#444", fontSize: 10, letterSpacing: 1.5, margin: "0 0 6px" }}>{l.toUpperCase()}</p>
+              <p style={{ color: "#fff", fontSize: 14, fontWeight: 700, margin: 0, fontFamily: "JetBrains Mono" }}>{v}</p>
             </div>
           ))}
         </div>
-
-        <p style={{ color: "#fff", fontSize: 20, fontWeight: 800, margin: "0 0 4px", fontFamily: "Syne", letterSpacing: -0.5 }}>¿Qué entrenas hoy?</p>
-        <p style={{ color: "#444", fontSize: 12, margin: "0 0 16px", fontFamily: "Syne" }}>Selecciona una o varias rutinas</p>
+        <p style={{ color: "#fff", fontSize: 20, fontWeight: 800, margin: "0 0 4px", letterSpacing: -0.5 }}>¿Qué entrenas hoy?</p>
+        <p style={{ color: "#444", fontSize: 12, margin: "0 0 16px" }}>Selecciona una o varias rutinas</p>
       </div>
-
       <div style={{ flex: 1, overflowY: "auto", padding: "0 20px" }}>
-        {ud.routines.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "40px 0" }}>
-            <p style={{ color: "#333", fontSize: 14, fontFamily: "Syne" }}>Sin rutinas.<br />Ve a la sección Rutinas y crea la primera.</p>
-          </div>
-        ) : ud.routines.map(r => {
+        {ud.routines.length === 0
+          ? <p style={{ color: "#333", textAlign: "center", padding: "40px 0", fontSize: 14 }}>Sin rutinas. Ve a Rutinas y crea la primera.</p>
+          : ud.routines.map(r => {
           const s = sel.includes(r.id);
           return (
-            <button key={r.id} onClick={() => toggle(r.id)} style={{
-              display: "flex", alignItems: "center", width: "100%", boxSizing: "border-box",
-              background: s ? user.accent + "12" : "#0e0e0e",
-              border: `1.5px solid ${s ? user.accent : "#1e1e1e"}`,
-              borderRadius: 14, padding: "16px 18px", marginBottom: 10,
-              cursor: "pointer", fontFamily: "Syne", transition: "all .15s", textAlign: "left",
-            }}>
-              <div style={{
-                width: 24, height: 24, borderRadius: "50%", flexShrink: 0, marginRight: 14,
-                border: `1.5px solid ${s ? user.accent : "#333"}`,
-                background: s ? user.accent : "transparent",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 12, color: "#000", fontWeight: 700,
-              }}>{s ? "✓" : ""}</div>
+            <button key={r.id} onClick={() => toggle(r.id)} style={{ display: "flex", alignItems: "center", width: "100%", boxSizing: "border-box", background: s ? user.accent + "12" : "#0e0e0e", border: "1.5px solid " + (s ? user.accent : "#1e1e1e"), borderRadius: 14, padding: "16px 18px", marginBottom: 10, cursor: "pointer", fontFamily: "Syne", transition: "all .15s", textAlign: "left" }}>
+              <div style={{ width: 24, height: 24, borderRadius: "50%", flexShrink: 0, marginRight: 14, border: "1.5px solid " + (s ? user.accent : "#333"), background: s ? user.accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#000", fontWeight: 700 }}>{s ? "✓" : ""}</div>
               <div style={{ flex: 1 }}>
                 <p style={{ color: "#fff", fontWeight: 700, fontSize: 15, margin: 0 }}>{r.name}</p>
                 <p style={{ color: "#555", fontSize: 11, margin: "3px 0 0", fontFamily: "JetBrains Mono" }}>{r.muscles} · {r.exercises.length} ejercicios</p>
@@ -681,13 +618,9 @@ function HomeScreen({ ud, user, onStart }) {
         })}
         <div style={{ height: 100 }} />
       </div>
-
       {sel.length > 0 && (
         <div style={{ padding: "14px 20px", borderTop: "1px solid #111" }}>
-          <button onClick={() => onStart(sel)} style={{
-            width: "100%", background: user.accent, color: "#000", border: "none", borderRadius: 12,
-            padding: 16, fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "Syne",
-          }}>
+          <button onClick={() => onStart(sel)} style={{ width: "100%", background: user.accent, color: "#000", border: "none", borderRadius: 12, padding: 16, fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "Syne" }}>
             Empezar — {sel.length} rutina{sel.length > 1 ? "s" : ""}
           </button>
         </div>
@@ -696,20 +629,30 @@ function HomeScreen({ ud, user, onStart }) {
   );
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// ROOT
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// WRAPPER
+// ═══════════════════════════════════════════════════════
+function Wrapper({ children }) {
+  return (
+    <div style={{ maxWidth: 430, margin: "0 auto", height: "100vh", display: "flex", flexDirection: "column", background: "#060606", overflow: "hidden" }}>
+      {children}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════
+// ROOT APP
+// ═══════════════════════════════════════════════════════
 const TABS = [
   { id: "home", label: "Hoy", icon: "🏠" },
   { id: "routines", label: "Rutinas", icon: "📋" },
   { id: "historial", label: "Historial", icon: "📈" },
 ];
 
-export default function App() {
+function App() {
   const [data, setData] = useState(loadData);
   const [user, setUser] = useState(null);
   const [tab, setTab] = useState("home");
-  // screen stack: {type: 'session'|'editRoutine'|'addRoutine', payload}
   const [overlay, setOverlay] = useState(null);
 
   const ud = user ? data[user.id] : null;
@@ -717,11 +660,10 @@ export default function App() {
 
   if (!user) return <Login onLogin={u => { setUser(u); setTab("home"); }} />;
 
-  // Overlay: session
   if (overlay?.type === "session") {
     const selRoutines = ud.routines.filter(r => overlay.ids.includes(r.id));
     return (
-      <Wrapper user={user}>
+      <Wrapper>
         <Session routines={selRoutines} user={user} ud={ud}
           onFinish={({ newRoutines, session }) => {
             updateUd({ ...ud, routines: newRoutines, history: [session, ...(ud.history || [])] });
@@ -734,7 +676,7 @@ export default function App() {
 
   if (overlay?.type === "addRoutine") {
     return (
-      <Wrapper user={user}>
+      <Wrapper>
         <RoutineEditor accent={user.accent}
           onSave={r => { updateUd({ ...ud, routines: [...ud.routines, { id: uid(), ...r }] }); setOverlay(null); setTab("routines"); }}
           onBack={() => setOverlay(null)} />
@@ -744,7 +686,7 @@ export default function App() {
 
   if (overlay?.type === "editRoutine") {
     return (
-      <Wrapper user={user}>
+      <Wrapper>
         <RoutineEditor existing={overlay.routine} accent={user.accent}
           onSave={r => { updateUd({ ...ud, routines: ud.routines.map(x => x.id === overlay.routine.id ? { ...x, ...r } : x) }); setOverlay(null); setTab("routines"); }}
           onBack={() => setOverlay(null)} />
@@ -753,7 +695,7 @@ export default function App() {
   }
 
   return (
-    <Wrapper user={user}>
+    <Wrapper>
       <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
         {tab === "home" && <HomeScreen ud={ud} user={user} onStart={ids => setOverlay({ type: "session", ids })} />}
         {tab === "routines" && <RoutinesScreen ud={ud} user={user} onUpdate={updateUd}
@@ -761,24 +703,14 @@ export default function App() {
           goAdd={() => setOverlay({ type: "addRoutine" })} />}
         {tab === "historial" && <HistorialScreen ud={ud} user={user} />}
       </div>
-      <nav style={{ display: "flex", background: "#080808", borderTop: "1px solid #111", paddingBottom: "env(safe-area-inset-bottom, 0)" }}>
+      <nav style={{ display: "flex", background: "#080808", borderTop: "1px solid #111", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
         {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{
-            flex: 1, background: "none", border: "none", cursor: "pointer",
-            padding: "11px 0 13px", color: tab === t.id ? user.accent : "#3a3a3a",
-            fontFamily: "Syne, sans-serif", fontSize: 10, letterSpacing: 0.5, fontWeight: tab === t.id ? 700 : 400,
-            display: "flex", flexDirection: "column", alignItems: "center", gap: 3, transition: "color .15s",
-          }}>
+          <button key={t.id} onClick={() => setTab(t.id)} style={{ flex: 1, background: "none", border: "none", cursor: "pointer", padding: "11px 0 13px", color: tab === t.id ? user.accent : "#3a3a3a", fontFamily: "Syne, sans-serif", fontSize: 10, letterSpacing: 0.5, fontWeight: tab === t.id ? 700 : 400, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, transition: "color .15s" }}>
             <span style={{ fontSize: 18 }}>{t.icon}</span>
             {t.label.toUpperCase()}
           </button>
         ))}
-        <button onClick={() => setUser(null)} style={{
-          flex: 1, background: "none", border: "none", cursor: "pointer",
-          padding: "11px 0 13px", color: "#2a2a2a",
-          fontFamily: "Syne, sans-serif", fontSize: 10, letterSpacing: 0.5,
-          display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-        }}>
+        <button onClick={() => setUser(null)} style={{ flex: 1, background: "none", border: "none", cursor: "pointer", padding: "11px 0 13px", color: "#2a2a2a", fontFamily: "Syne, sans-serif", fontSize: 10, letterSpacing: 0.5, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
           <span style={{ fontSize: 18 }}>👤</span>SALIR
         </button>
       </nav>
@@ -786,17 +718,7 @@ export default function App() {
   );
 }
 
-function Wrapper({ user, children }) {
-  return (
-    <div style={{ maxWidth: 430, margin: "0 auto", height: "100vh", display: "flex", flexDirection: "column", background: "#060606", fontFamily: "Syne, sans-serif", overflow: "hidden" }}>
-      <link href={FONT_LINK} rel="stylesheet" />
-      {children}
-    </div>
-  );
-}
-
-// ── Shared styles ──
-const scr = { display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" };
-const h2s = { color: "#fff", fontSize: 22, fontWeight: 800, margin: 0, fontFamily: "Syne", letterSpacing: -0.5 };
-const labelS = { color: "#444", fontSize: 10, letterSpacing: 2, margin: "0 0 6px", fontFamily: "Syne" };
-const backBtn = { background: "none", border: "none", color: "#555", cursor: "pointer", fontSize: 22, padding: 0, fontFamily: "Syne" };
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
